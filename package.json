@@ -1,0 +1,23 @@
+{
+  "name": "perf",
+  "version": "1.0.0",
+  "description": "Test harness to measure key performance metrics",
+  "main": "benchmark-suite.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "lighthouse": "^12.3.0",
+    "puppeteer": "^24.0.0",
+    "webpack-bundle-analyzer": "^4.10.2"
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "performance-now": "^2.1.0",
+    "rimraf": "^6.0.1"
+  }
+}
