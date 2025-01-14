@@ -1,4 +1,4 @@
-# Frontend Framework Benchmark Project Setup
+# Frontend Framework Benchmark Suite
 
 ## Project Structure
 
