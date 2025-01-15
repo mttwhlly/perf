@@ -1,28 +1,28 @@
 # Frontend Framework Benchmark Suite
 
-## Project Structure
+A comprehensive benchmark suite for frontend frameworks, focusing on performance, scalability, and developer experience.
 
+## Getting Started
+
+1. Clone the repository:
+```bash
+git clone
 ```
-framework-benchmarks/
-├── benchmark-suite/
-│   ├── core/
-│   │   ├── BenchmarkSuite.js
-│   │   ├── metrics/
-│   │   └── reporters/
-├── test-implementations/
-│   ├── react-app/
-│   ├── vue-app/
-│   ├── svelte-app/
-│   ├── angular-app/
-│   └── blazor-app/
-├── test-scenarios/
-│   ├── form-handling/
-│   ├── realtime-updates/
-│   ├── animation/
-│   ├── websocket/
-│   └── dom-manipulation/
-├── test-data/
-└── results/
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Generate all implementations:
+```bash
+npm run init
+npm run setup
+```
+
+4. Run the benchmarks:
+```bash
+npm run benchmark
 ```
 
 ## Test Scenario Setup
@@ -58,49 +58,6 @@ Identical test components in each framework implementation:
 - Virtual scrolling
 - Dynamic updates
 - Complex layouts
-
-## Running the Benchmarks
-
-1. Start the benchmark suite:
-```bash
-# From project root
-npm run benchmark
-```
-
-2. Run specific scenarios:
-```bash
-npm run benchmark -- --scenario=form-handling
-npm run benchmark -- --scenario=realtime
-npm run benchmark -- --scenario=animation
-```
-
-3. Run framework-specific tests:
-```bash
-npm run benchmark -- --framework=react
-npm run benchmark -- --framework=vue
-```
-
-## Configuration
-
-Create a `benchmark.config.js` in your project root:
-
-```javascript
-module.exports = {
-  frameworks: ['react', 'vue', 'svelte', 'angular', 'blazor'],
-  scenarios: ['form', 'realtime', 'animation', 'websocket', 'dom'],
-  metrics: {
-    tti: true,
-    codeSplitting: true,
-    stateManagement: true,
-    routeTransitions: true,
-    ssr: true
-  },
-  reporters: ['json', 'html', 'console'],
-  environments: ['chrome', 'firefox', 'edge'],
-  iterations: 5,
-  warmupIterations: 2
-};
-```
 
 ## Results Analysis
 

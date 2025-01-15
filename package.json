@@ -1,23 +1,53 @@
 {
-  "name": "perf",
+  "name": "framework-benchmarks",
   "version": "1.0.0",
-  "description": "Test harness to measure key performance metrics",
-  "main": "benchmark-suite.js",
+  "description": "Frontend Framework Benchmark Suite",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@playwright/test": "^1.49.1",
-    "lighthouse": "^12.3.0",
-    "puppeteer": "^24.0.0",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "init": "node scripts/initialize.js",
+    "setup": "node scripts/setup.js",
+    "clean": "rm -rf test-implementations results && rm -rf node_modules && npm install",
+    "reset": "npm run clean && npm run init && npm run setup",
+    "start": "node scripts/dev-server.js",
+    "build": "npm run build:all",
+    "build:all": "npm run build:react-router && npm run build:vue && npm run build:svelte && npm run build:angular && npm run build:blazor",
+    "build:react-router": "cd test-implementations/react-router-app && npm run build",
+    "build:vue": "cd test-implementations/vue-app && npm run build",
+    "build:svelte": "cd test-implementations/svelte-app && npm run build",
+    "build:angular": "cd test-implementations/angular-app && ng build",
+    "build:blazor": "cd test-implementations/blazor-app && dotnet build",
+    "benchmark": "node scripts/benchmark-runner.js",
+    "benchmark:react-router": "npm run benchmark -- --framework react-router",
+    "benchmark:vue": "npm run benchmark -- --framework vue",
+    "benchmark:svelte": "npm run benchmark -- --framework svelte",
+    "benchmark:angular": "npm run benchmark -- --framework angular",
+    "benchmark:blazor": "npm run benchmark -- --framework blazor",
+    "benchmark:form": "npm run benchmark -- --scenario form",
+    "benchmark:realtime": "npm run benchmark -- --scenario realtime",
+    "benchmark:animation": "npm run benchmark -- --scenario animation",
+    "benchmark:websocket": "npm run benchmark -- --scenario websocket",
+    "benchmark:dom": "npm run benchmark -- --scenario dom",
+    "test": "jest",
+    "report": "node scripts/generate-report.js"
   },
   "dependencies": {
-    "cross-env": "^7.0.3",
-    "performance-now": "^2.1.0",
-    "rimraf": "^6.0.1"
+    "@remix-run/express": "^2.15.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "chart.js": "^3.7.0",
+    "commander": "^8.3.0",
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0",
+    "puppeteer": "^24.1.0",
+    "vite": "^6.0.7"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "concurrently": "^7.6.0",
+    "jest": "^27.4.7",
+    "jest-environment-jsdom": "^29.7.0",
+    "jest-puppeteer": "^11.0.0"
   }
 }

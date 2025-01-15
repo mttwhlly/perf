@@ -1,0 +1,9 @@
+{
+  "frequency": 60,
+  "dataSize": 1000,
+  "transformations": [
+    "sort",
+    "filter",
+    "aggregate"
+  ]
+}

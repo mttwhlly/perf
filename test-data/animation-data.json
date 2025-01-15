@@ -1,0 +1,18 @@
+{
+  "css": {
+    "elements": 1000,
+    "properties": [
+      "transform",
+      "opacity"
+    ],
+    "duration": 1000
+  },
+  "canvas": {
+    "particles": 10000,
+    "fps": 60
+  },
+  "svg": {
+    "paths": 1000,
+    "morphing": true
+  }
+}
