@@ -2,24 +2,75 @@ const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const path = require('path');
 const { program } = require('commander');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const express = require('express');
 const compression = require('compression');
 const morgan = require('morgan');
 const { createServer: createViteServer } = require('vite');
+const { performance, PerformanceObserver } = require('perf_hooks');
+
+// Framework configuration
+const FRAMEWORK_CONFIGS = {
+  'react-router': {
+    type: 'vite',
+    port: 5173,
+    buildCommand: 'npm run build',
+    startCommand: null,
+    routeFormat: 'direct'
+  },
+  'vue': {
+    type: 'vite',
+    port: 5173,
+    buildCommand: 'npm run build',
+    startCommand: null,
+    routeFormat: 'query'
+  },
+  'svelte': {
+    type: 'vite',
+    port: 5173,
+    buildCommand: 'npm run build',
+    startCommand: null,
+    routeFormat: 'query'
+  },
+  'angular': {
+    type: 'standalone',
+    port: 4200,
+    buildCommand: 'ng build',
+    startCommand: 'ng serve --port 4200',
+    routeFormat: 'query'
+  },
+  'blazor': {
+    type: 'dotnet',
+    port: 5000,
+    buildCommand: 'dotnet build',
+    startCommand: 'dotnet run',
+    routeFormat: 'query'
+  }
+};
+
+// Server startup based on framework type
+async function startServer(framework, port) {
+  const config = FRAMEWORK_CONFIGS[framework];
+  
+  switch (config.type) {
+    case 'vite':
+      return startViteServer(port, framework);
+    case 'standalone':
+    case 'dotnet':
+      return startStandaloneServer(framework, port);
+    default:
+      throw new Error(`Unknown framework type: ${config.type}`);
+  }
+}
 
 async function startViteServer(port, framework) {
   const app = express();
   app.use(compression());
   app.use(morgan('tiny'));
 
-  // Create Vite server in middleware mode
   const vite = await createViteServer({
     root: path.join(__dirname, '..', 'test-implementations', `${framework}-app`),
-    server: {
-      middlewareMode: true,
-      port: port
-    },
+    server: { middlewareMode: true, port },
     appType: 'spa'
   });
 
@@ -28,61 +79,238 @@ async function startViteServer(port, framework) {
   return new Promise((resolve) => {
     const server = app.listen(port, () => {
       console.log(`${framework} app listening on port ${port}`);
-      resolve(server);
+      resolve({ server, type: 'vite' });
     });
   });
 }
 
+async function startStandaloneServer(framework, port) {
+  const config = FRAMEWORK_CONFIGS[framework];
+  const appPath = path.join(__dirname, '..', 'test-implementations', `${framework}-app`);
+  const originalDir = process.cwd();
+
+  try {
+    process.chdir(appPath);
+    const command = config.startCommand.split(' ')[0];
+    const args = config.startCommand.split(' ').slice(1);
+    
+    return new Promise((resolve) => {
+      const server = spawn(command, args, {
+        stdio: 'inherit',
+        shell: true,
+        env: { ...process.env, PORT: port.toString() }
+      });
+
+      // Give the server time to start
+      setTimeout(() => {
+        console.log(`${framework} app listening on port ${port}`);
+        resolve({ server, type: config.type });
+      }, 5000);
+    });
+  } finally {
+    process.chdir(originalDir);
+  }
+}
+
+// Build function for different frameworks
 async function buildFramework(framework) {
-  console.log(`Building ${framework}...`);
+  const config = FRAMEWORK_CONFIGS[framework];
   const frameworkPath = path.join(__dirname, '..', 'test-implementations', `${framework}-app`);
+  const originalDir = process.cwd();
   
   try {
-    const originalDir = process.cwd();
-    console.log(`Changing to directory: ${frameworkPath}`);
     process.chdir(frameworkPath);
     
-    if (framework === 'react-router') {
-      console.log('Running React Router build...');
+    if (config.type === 'dotnet') {
+      execSync(config.buildCommand, { stdio: 'inherit' });
+    } else {
       await new Promise((resolve, reject) => {
-        const { spawn } = require('child_process');
-        const build = spawn('npm', ['run', 'build'], {
+        const command = config.buildCommand.split(' ')[0];
+        const args = config.buildCommand.split(' ').slice(1);
+        
+        const build = spawn(command, args, {
           stdio: 'inherit',
           shell: true,
           env: { ...process.env, FORCE_COLOR: true }
         });
 
-        build.on('error', (err) => {
-          console.error('Build process error:', err);
-          reject(err);
-        });
-
-        build.on('exit', (code) => {
-          if (code === 0) {
-            resolve();
-          } else {
-            reject(new Error(`Build process exited with code ${code}`));
-          }
-        });
-      });
-    } else {
-      execSync('npm run build', { 
-        stdio: 'inherit',
-        maxBuffer: 1024 * 1024 * 10
+        build.on('error', reject);
+        build.on('exit', code => code === 0 ? resolve() : reject(new Error(`Build failed with code ${code}`)));
       });
     }
-    
-    process.chdir(originalDir);
   } catch (error) {
     console.error(`Error building ${framework}:`, error);
-    try {
-      process.chdir(originalDir);
-    } catch (cdError) {
-      console.error('Error returning to original directory:', cdError);
-    }
     throw error;
+  } finally {
+    process.chdir(originalDir);
   }
 }
+
+// Enhanced metrics collection (preserved from original)
+async function collectWebVitals(page) {
+  return await page.evaluate(() => {
+    return new Promise((resolve) => {
+      let metrics = {};
+      
+      new PerformanceObserver((entryList) => {
+        const entries = entryList.getEntries();
+        entries.forEach((entry) => {
+          metrics[entry.name] = entry.value;
+        });
+      }).observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
+
+      new PerformanceObserver((entryList) => {
+        const entries = entryList.getEntries();
+        entries.forEach((entry) => {
+          if (entry.name === 'first-contentful-paint') {
+            metrics['FCP'] = entry.startTime;
+          }
+        });
+      }).observe({ entryTypes: ['paint'] });
+
+      setTimeout(() => resolve(metrics), 5000);
+    });
+  });
+}
+
+// Memory leak analysis (preserved from original)
+function analyzeMemoryLeaks(memoryTimeSeries) {
+  const n = memoryTimeSeries.length;
+  if (n < 2) return { hasLeak: false };
+
+  const timestamps = memoryTimeSeries.map(x => x.timestamp);
+  const heapSizes = memoryTimeSeries.map(x => x.jsHeapSize);
+  
+  const sumX = timestamps.reduce((a, b) => a + b, 0);
+  const sumY = heapSizes.reduce((a, b) => a + b, 0);
+  const sumXY = timestamps.reduce((sum, x, i) => sum + x * heapSizes[i], 0);
+  const sumXX = timestamps.reduce((sum, x) => sum + x * x, 0);
+  
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  
+  return {
+    hasLeak: slope > 1000,
+    growthRate: slope,
+    unit: 'bytes/ms'
+  };
+}
+
+// Get URL based on framework configuration
+function getScenarioUrl(framework, scenario) {
+  const config = FRAMEWORK_CONFIGS[framework];
+  const baseUrl = `http://localhost:${config.port}`;
+  
+  switch (config.routeFormat) {
+    case 'direct':
+      return `${baseUrl}/${scenario}`;
+    case 'query':
+      return `${baseUrl}?test=${scenario}`;
+    default:
+      throw new Error(`Unknown route format: ${config.routeFormat}`);
+  }
+}
+
+  // Enhanced benchmark helper injection
+async function injectBenchmarkHelper(page) {
+    await page.evaluate(() => {
+      window.benchmarkHelper = {
+        async runScenario() {
+          const renderTimes = [];
+          const memorySnapshots = [];
+          const interactionEvents = [];
+          
+          // Original render time measurement
+          performance.mark('renderStart');
+          await new Promise(resolve => setTimeout(resolve, 100));
+          performance.mark('renderEnd');
+          performance.measure('render', 'renderStart', 'renderEnd');
+          
+          // Enhanced memory tracking
+          if (performance.memory) {
+            for (let i = 0; i < 5; i++) {
+              memorySnapshots.push({
+                timestamp: Date.now(),
+                ...performance.memory
+              });
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+          
+          // Track interaction events
+          const observer = new PerformanceObserver((list) => {
+            interactionEvents.push(...list.getEntries());
+          });
+          observer.observe({ entryTypes: ['event'] });
+          
+          // Run scenario-specific measurements
+          await this.runScenarioSpecificTests();
+          
+          return {
+            renderTimes,
+            memorySnapshots,
+            interactionEvents,
+            performance: performance.getEntriesByType('measure')
+          };
+        },
+  
+        async runScenarioSpecificTests() {
+          // Form test
+          if (document.querySelector('.form-test')) {
+            const form = document.querySelector('.form-test');
+            const inputs = form.querySelectorAll('input');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            // Measure input performance
+            performance.mark('inputStart');
+            inputs.forEach(input => {
+              input.value = 'test value';
+              input.dispatchEvent(new Event('input'));
+            });
+            performance.mark('inputEnd');
+            performance.measure('input', 'inputStart', 'inputEnd');
+            
+            // Measure form submission
+            performance.mark('submitStart');
+            submitBtn.click();
+            performance.mark('submitEnd');
+            performance.measure('submit', 'submitStart', 'submitEnd');
+          }
+          
+          // Realtime test
+          if (document.querySelector('.realtime-test')) {
+            performance.mark('realtimeStart');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            performance.mark('realtimeEnd');
+            performance.measure('realtime', 'realtimeStart', 'realtimeEnd');
+          }
+          
+          // Animation test
+          if (document.querySelector('.animation-test')) {
+            performance.mark('animationStart');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            performance.mark('animationEnd');
+            performance.measure('animation', 'animationStart', 'animationEnd');
+          }
+          
+          // WebSocket test
+          if (document.querySelector('.websocket-test')) {
+            performance.mark('websocketStart');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            performance.mark('websocketEnd');
+            performance.measure('websocket', 'websocketStart', 'websocketEnd');
+          }
+          
+          // DOM test
+          if (document.querySelector('.dom-test')) {
+            performance.mark('domStart');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            performance.mark('domEnd');
+            performance.measure('dom', 'domStart', 'domEnd');
+          }
+        }
+      };
+    });
+  }
 
 async function runBenchmark(options) {
   let server;
@@ -218,7 +446,26 @@ async function runBenchmark(options) {
     process.exit(1);
   } finally {
     if (browser) await browser.close();
-    if (server) server.close();
+    if (server) {
+        try {
+          if (server.type === 'vite') {
+            await new Promise((resolve) => {
+              server.server.close(() => {
+                console.log('Vite server closed');
+                resolve();
+              });
+            });
+          } else if (server.type === 'standalone' || server.type === 'dotnet') {
+            // For Angular/Blazor processes, we need to kill the spawned process
+            server.server.kill('SIGTERM');
+            // Give it a moment to clean up
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log(`${server.type} server terminated`);
+          }
+        } catch (error) {
+          console.error('Error closing server:', error);
+        }
+      }
   }
 }
 
@@ -278,4 +525,82 @@ function generateSummary(results) {
   return summary;
 }
 
-runBenchmark(program.opts()).catch(console.error);
+function getFrameworkConfig(framework) {
+    const config = FRAMEWORK_CONFIGS[framework];
+    if (!config) {
+      throw new Error(`Unknown framework: ${framework}`);
+    }
+    return config;
+  }
+  
+async function verifyFrameworkSetup(framework) {
+const config = getFrameworkConfig(framework);
+const frameworkPath = path.join(__dirname, '..', 'test-implementations', `${framework}-app`);
+
+try {
+    const stats = await fs.stat(frameworkPath);
+    if (!stats.isDirectory()) {
+    throw new Error(`Framework path for ${framework} is not a directory`);
+    }
+    
+    // Check for package.json except for Blazor
+    if (config.type !== 'dotnet') {
+    const packageJsonPath = path.join(frameworkPath, 'package.json');
+    await fs.access(packageJsonPath);
+    }
+    
+    return true;
+} catch (error) {
+    console.error(`Framework ${framework} is not properly set up:`, error.message);
+    return false;
+}
+}
+
+module.exports = {
+    // Core functionality
+    runBenchmark,
+    startServer,
+    buildFramework,
+    
+    // Server management
+    startViteServer,
+    startStandaloneServer,
+    
+    // Metrics collection
+    collectWebVitals,
+    analyzeMemoryLeaks,
+    injectBenchmarkHelper,
+    
+    // Configuration and helpers
+    FRAMEWORK_CONFIGS,
+    getFrameworkConfig,
+    verifyFrameworkSetup,
+    getScenarioUrl,
+    
+    // Analysis helpers
+    calculateAverage,
+    calculatePercentile,
+    formatBytes,
+    generateSummary
+  };
+  
+  // Run benchmark if script is executed directly
+  if (require.main === module) {
+    const options = program.opts();
+    
+    // Verify framework setup before running
+    if (options.framework) {
+      verifyFrameworkSetup(options.framework)
+        .then(isValid => {
+          if (isValid) {
+            return runBenchmark(options);
+          } else {
+            console.error(`Cannot run benchmark: ${options.framework} is not properly set up`);
+            process.exit(1);
+          }
+        })
+        .catch(console.error);
+    } else {
+      runBenchmark(options).catch(console.error);
+    }
+  }
