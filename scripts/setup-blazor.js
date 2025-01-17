@@ -1,11 +1,15 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function setupBlazor() {
-    const blazorPath = path.join(__dirname, '..', 'test-implementations', 'blazor-app');
-    const pagesPath = path.join(blazorPath, 'Pages');
-    const sharedPath = path.join(blazorPath, 'Shared');
-    const wwwrootPath = path.join(blazorPath, 'wwwroot');
+    const blazorPath = join(__dirname, '..', 'test-implementations', 'blazor-app');
+    const pagesPath = join(blazorPath, 'Pages');
+    const sharedPath = join(blazorPath, 'Shared');
+    const wwwrootPath = join(blazorPath, 'wwwroot');
     
     try {
         // Create necessary directories
@@ -15,7 +19,7 @@ async function setupBlazor() {
 
         // Create App.razor
         await fs.writeFile(
-            path.join(blazorPath, 'App.razor'),
+            join(blazorPath, 'App.razor'),
             `<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
@@ -32,7 +36,7 @@ async function setupBlazor() {
 
         // Create MainLayout.razor
         await fs.writeFile(
-            path.join(sharedPath, 'MainLayout.razor'),
+            join(sharedPath, 'MainLayout.razor'),
             `@inherits LayoutComponentBase
 
 <main>
@@ -266,7 +270,7 @@ async function setupBlazor() {
 
         // Create JavaScript interop file for canvas
         await fs.writeFile(
-            path.join(wwwrootPath, 'canvasInterop.js'),
+            join(wwwrootPath, 'canvasInterop.js'),
             `window.setupCanvas = (canvas) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -282,19 +286,20 @@ async function setupBlazor() {
 
         // Write page files
         for (const [pageName, content] of Object.entries(pages)) {
-            const fullPath = path.join(pagesPath, pageName);
+            const fullPath = join(pagesPath, pageName);
             await fs.writeFile(fullPath, content);
         }
 
         // Create wwwroot/css/site.css
+        await fs.mkdir(join(wwwrootPath, 'css'), { recursive: true });
         await fs.writeFile(
-            path.join(wwwrootPath, 'css', 'site.css'),
+            join(wwwrootPath, 'css', 'site.css'),
             'body { margin: 0; padding: 20px; font-family: sans-serif; }'
         );
 
         // Create _Imports.razor
         await fs.writeFile(
-            path.join(blazorPath, '_Imports.razor'),
+            join(blazorPath, '_Imports.razor'),
             `@using System.Net.Http
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Forms
@@ -312,9 +317,9 @@ async function setupBlazor() {
     }
 }
 
-module.exports = setupBlazor;
+export default setupBlazor;
 
 // Run setup if this script is executed directly
-if (require.main === module) {
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
     setupBlazor().catch(console.error);
 }

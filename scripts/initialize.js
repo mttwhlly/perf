@@ -1,7 +1,12 @@
 // scripts/initialize.js
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import { existsSync, mkdirSync, rmSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function initialize() {
     try {
@@ -15,8 +20,8 @@ async function initialize() {
         ];
         
         dirs.forEach(dir => {
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
+            if (!existsSync(dir)) {
+                mkdirSync(dir, { recursive: true });
             }
         });
 
@@ -36,10 +41,10 @@ async function initialize() {
 
 async function initReactRouter() {
     console.log('\nInitializing React Router application...');
-    const appPath = path.join(process.cwd(), 'test-implementations', 'react-router-app');
+    const appPath = join(process.cwd(), 'test-implementations', 'react-router-app');
     
-    if (fs.existsSync(appPath)) {
-        fs.rmSync(appPath, { recursive: true, force: true });
+    if (existsSync(appPath)) {
+        rmSync(appPath, { recursive: true, force: true });
     }
 
     process.chdir('test-implementations');
@@ -52,10 +57,10 @@ async function initReactRouter() {
 
 async function initVue() {
     console.log('\nInitializing Vue application...');
-    const appPath = path.join(process.cwd(), 'test-implementations', 'vue-app');
+    const appPath = join(process.cwd(), 'test-implementations', 'vue-app');
     
-    if (fs.existsSync(appPath)) {
-        fs.rmSync(appPath, { recursive: true, force: true });
+    if (existsSync(appPath)) {
+        rmSync(appPath, { recursive: true, force: true });
     }
 
     process.chdir('test-implementations');
@@ -67,14 +72,14 @@ async function initVue() {
 
 async function initSvelte() {
     console.log('\nInitializing Svelte application...');
-    const appPath = path.join(process.cwd(), 'test-implementations', 'svelte-app');
+    const appPath = join(process.cwd(), 'test-implementations', 'svelte-app');
     
-    if (fs.existsSync(appPath)) {
-        fs.rmSync(appPath, { recursive: true, force: true });
+    if (existsSync(appPath)) {
+        rmSync(appPath, { recursive: true, force: true });
     }
 
     process.chdir('test-implementations');
-    execSync('npx sv create svelte-app -- --typescript', { stdio: 'inherit' });
+    execSync('npx sv create svelte-app', { stdio: 'inherit' });
     process.chdir('svelte-app');
     execSync('npm install', { stdio: 'inherit' });
     process.chdir('../..');
@@ -82,10 +87,10 @@ async function initSvelte() {
 
 async function initAngular() {
     console.log('\nInitializing Angular application...');
-    const appPath = path.join(process.cwd(), 'test-implementations', 'angular-app');
+    const appPath = join(process.cwd(), 'test-implementations', 'angular-app');
     
-    if (fs.existsSync(appPath)) {
-        fs.rmSync(appPath, { recursive: true, force: true });
+    if (existsSync(appPath)) {
+        rmSync(appPath, { recursive: true, force: true });
     }
 
     process.chdir('test-implementations');
@@ -97,10 +102,10 @@ async function initAngular() {
 
 async function initBlazor() {
     console.log('\nInitializing Blazor application...');
-    const appPath = path.join(process.cwd(), 'test-implementations', 'blazor-app');
+    const appPath = join(process.cwd(), 'test-implementations', 'blazor-app');
     
-    if (fs.existsSync(appPath)) {
-        fs.rmSync(appPath, { recursive: true, force: true });
+    if (existsSync(appPath)) {
+        rmSync(appPath, { recursive: true, force: true });
     }
 
     process.chdir('test-implementations');
@@ -108,9 +113,9 @@ async function initBlazor() {
     process.chdir('..');
 }
 
+export default initialize;
+
 // Run initialization if this script is executed directly
-if (require.main === module) {
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
     initialize();
 }
-
-module.exports = initialize;

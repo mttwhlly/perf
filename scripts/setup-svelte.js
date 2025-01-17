@@ -1,18 +1,22 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function setupSvelte() {
-    const sveltePath = path.join(__dirname, '..', 'test-implementations', 'svelte-app');
-    const srcPath = path.join(sveltePath, 'src');
+    const sveltePath = join(__dirname, '..', 'test-implementations', 'svelte-app');
+    const srcPath = join(sveltePath, 'src');
     
     try {
         // Create necessary directories
-        await fs.mkdir(path.join(srcPath, 'lib'), { recursive: true });
-        await fs.mkdir(path.join(srcPath, 'routes'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'lib'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'routes'), { recursive: true });
 
         // Create app.html
         await fs.writeFile(
-            path.join(srcPath, 'app.html'),
+            join(srcPath, 'app.html'),
             `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -28,7 +32,7 @@ async function setupSvelte() {
 
         // Create +layout.svelte
         await fs.writeFile(
-            path.join(srcPath, 'routes', '+layout.svelte'),
+            join(srcPath, 'routes', '+layout.svelte'),
             `<script>
   import '../app.css'
 </script>
@@ -209,21 +213,21 @@ onMount(() => {
 
         // Write route files
         for (const [routePath, content] of Object.entries(routes)) {
-            const fullPath = path.join(srcPath, 'routes', routePath);
-            await fs.mkdir(path.dirname(fullPath), { recursive: true });
+            const fullPath = join(srcPath, 'routes', routePath);
+            await fs.mkdir(dirname(fullPath), { recursive: true });
             await fs.writeFile(fullPath, content);
         }
 
         // Write component files
         for (const [filePath, content] of Object.entries(components)) {
-            const fullPath = path.join(srcPath, 'lib', 'components', filePath);
-            await fs.mkdir(path.dirname(fullPath), { recursive: true });
+            const fullPath = join(srcPath, 'lib', 'components', filePath);
+            await fs.mkdir(dirname(fullPath), { recursive: true });
             await fs.writeFile(fullPath, content);
         }
 
         // Create app.css
         await fs.writeFile(
-            path.join(srcPath, 'app.css'),
+            join(srcPath, 'app.css'),
             'body { margin: 0; padding: 20px; font-family: sans-serif; }'
         );
 
@@ -234,9 +238,9 @@ onMount(() => {
     }
 }
 
-module.exports = setupSvelte;
+export default setupSvelte;
 
 // Run setup if this script is executed directly
-if (require.main === module) {
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
     setupSvelte().catch(console.error);
 }

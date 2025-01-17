@@ -2,6 +2,7 @@
   "name": "framework-benchmarks",
   "version": "1.0.0",
   "description": "Frontend Framework Benchmark Suite",
+  "type": "module",
   "scripts": {
     "init": "node scripts/initialize.js",
     "setup": "node scripts/setup.js",

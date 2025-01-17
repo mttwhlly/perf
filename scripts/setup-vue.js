@@ -1,18 +1,22 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function setupVue() {
-    const vuePath = path.join(__dirname, '..', 'test-implementations', 'vue-app');
-    const srcPath = path.join(vuePath, 'src');
+    const vuePath = join(__dirname, '..', 'test-implementations', 'vue-app');
+    const srcPath = join(vuePath, 'src');
     
     try {
         // Create necessary directories
-        await fs.mkdir(path.join(srcPath, 'components'), { recursive: true });
-        await fs.mkdir(path.join(srcPath, 'views'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'components'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'views'), { recursive: true });
 
         // Create main.ts
         await fs.writeFile(
-            path.join(srcPath, 'main.ts'),
+            join(srcPath, 'main.ts'),
             `import { createApp } from 'vue'
 import { router } from './router'
 import App from './App.vue'
@@ -25,7 +29,7 @@ app.mount('#app')`
 
         // Create App.vue
         await fs.writeFile(
-            path.join(srcPath, 'App.vue'),
+            join(srcPath, 'App.vue'),
             `<template>
   <router-view></router-view>
 </template>`
@@ -33,7 +37,7 @@ app.mount('#app')`
 
         // Create router.ts
         await fs.writeFile(
-            path.join(srcPath, 'router.ts'),
+            join(srcPath, 'router.ts'),
             `import { createRouter, createWebHistory } from 'vue-router'
 import FormTest from './components/form/FormTest.vue'
 import RealtimeTest from './components/realtime/RealtimeTest.vue'
@@ -259,14 +263,14 @@ export default defineComponent({
 
         // Write component files
         for (const [filePath, content] of Object.entries(components)) {
-            const fullPath = path.join(srcPath, 'components', filePath);
-            await fs.mkdir(path.dirname(fullPath), { recursive: true });
+            const fullPath = join(srcPath, 'components', filePath);
+            await fs.mkdir(dirname(fullPath), { recursive: true });
             await fs.writeFile(fullPath, content);
         }
 
         // Create CSS
         await fs.writeFile(
-            path.join(srcPath, 'index.css'),
+            join(srcPath, 'index.css'),
             'body { margin: 0; padding: 20px; font-family: sans-serif; }'
         );
 
@@ -277,9 +281,9 @@ export default defineComponent({
     }
 }
 
-module.exports = setupVue;
+export default setupVue;
 
 // Run setup if this script is executed directly
-if (require.main === module) {
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
     setupVue().catch(console.error);
 }

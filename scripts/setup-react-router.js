@@ -1,18 +1,22 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-async function setupRouter() {
-    const routerPath = path.join(__dirname, '..', 'test-implementations', 'react-router-app');
-    const srcPath = path.join(routerPath, 'src');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+async function setupReactRouter() {
+    const routerPath = join(__dirname, '..', 'test-implementations', 'react-router-app');
+    const srcPath = join(routerPath, 'src');
     
     try {
         // Create necessary directories
-        await fs.mkdir(path.join(srcPath, 'components'), { recursive: true });
-        await fs.mkdir(path.join(srcPath, 'routes'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'components'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'routes'), { recursive: true });
 
         // Create main.tsx
         await fs.writeFile(
-            path.join(srcPath, 'main.tsx'),
+            join(srcPath, 'main.tsx'),
             `import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
@@ -28,7 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
         // Create routes/index.tsx
         await fs.writeFile(
-            path.join(srcPath, 'routes', 'index.tsx'),
+            join(srcPath, 'routes', 'index.tsx'),
             `import { createBrowserRouter } from 'react-router-dom';
 import { FormTest } from '../components/form/FormTest';
 import { RealtimeTest } from '../components/realtime/RealtimeTest';
@@ -233,14 +237,14 @@ export function DOMTest({ list = { items: 1000 } }: DOMTestProps) {
 
         // Write component files
         for (const [filePath, content] of Object.entries(components)) {
-            const fullPath = path.join(srcPath, 'components', filePath);
-            await fs.mkdir(path.dirname(fullPath), { recursive: true });
+            const fullPath = join(srcPath, 'components', filePath);
+            await fs.mkdir(dirname(fullPath), { recursive: true });
             await fs.writeFile(fullPath, content);
         }
 
         // Create CSS
         await fs.writeFile(
-            path.join(srcPath, 'index.css'),
+            join(srcPath, 'index.css'),
             'body { margin: 0; padding: 20px; font-family: sans-serif; }'
         );
 
@@ -251,9 +255,10 @@ export function DOMTest({ list = { items: 1000 } }: DOMTestProps) {
     }
 }
 
-module.exports = setupRouter;
+// Export the function
+export default setupReactRouter;
 
 // Run setup if this script is executed directly
-if (require.main === module) {
-    setupRouter().catch(console.error);
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
+    setupReactRouter().catch(console.error);
 }

@@ -1,17 +1,21 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function setupAngular() {
-    const angularPath = path.join(__dirname, '..', 'test-implementations', 'angular-app');
-    const srcPath = path.join(angularPath, 'src', 'app');
+    const angularPath = join(__dirname, '..', 'test-implementations', 'angular-app');
+    const srcPath = join(angularPath, 'src', 'app');
     
     try {
         // Create necessary directories
-        await fs.mkdir(path.join(srcPath, 'components'), { recursive: true });
+        await fs.mkdir(join(srcPath, 'components'), { recursive: true });
 
         // Create routing configuration
         await fs.writeFile(
-            path.join(srcPath, 'app-routing.module.ts'),
+            join(srcPath, 'app-routing.module.ts'),
             `import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { FormTestComponent } from './components/form-test/form-test.component';
@@ -38,7 +42,7 @@ export class AppRoutingModule { }`
 
         // Create app.component.ts
         await fs.writeFile(
-            path.join(srcPath, 'app.component.ts'),
+            join(srcPath, 'app.component.ts'),
             `import { Component } from '@angular/core';
 
 @Component({
@@ -50,7 +54,7 @@ export class AppComponent { }`
 
         // Create app.module.ts
         await fs.writeFile(
-            path.join(srcPath, 'app.module.ts'),
+            join(srcPath, 'app.module.ts'),
             `import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -253,14 +257,14 @@ export class DomTestComponent implements OnInit {
 
         // Write component files
         for (const [componentPath, content] of Object.entries(components)) {
-            const fullPath = path.join(srcPath, 'components', componentPath);
-            await fs.mkdir(path.dirname(fullPath), { recursive: true });
+            const fullPath = join(srcPath, 'components', componentPath);
+            await fs.mkdir(dirname(fullPath), { recursive: true });
             await fs.writeFile(fullPath, content);
         }
 
         // Create styles.css
         await fs.writeFile(
-            path.join(angularPath, 'src', 'styles.css'),
+            join(angularPath, 'src', 'styles.css'),
             'body { margin: 0; padding: 20px; font-family: sans-serif; }'
         );
 
@@ -271,9 +275,9 @@ export class DomTestComponent implements OnInit {
     }
 }
 
-module.exports = setupAngular;
+export default setupAngular;
 
 // Run setup if this script is executed directly
-if (require.main === module) {
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
     setupAngular().catch(console.error);
 }

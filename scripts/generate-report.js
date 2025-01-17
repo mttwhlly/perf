@@ -1,10 +1,14 @@
 // scripts/generate-report.js
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function generateReport() {
     try {
-        const resultsDir = path.join(__dirname, '..', 'results');
+        const resultsDir = join(__dirname, '..', 'results');
         const files = await fs.readdir(resultsDir);
         const jsonFiles = files.filter(file => file.endsWith('.json'));
         
@@ -16,12 +20,12 @@ async function generateReport() {
         // Read the most recent benchmark result
         const latestFile = jsonFiles.sort().reverse()[0];
         const resultData = JSON.parse(
-            await fs.readFile(path.join(resultsDir, latestFile), 'utf8')
+            await fs.readFile(join(resultsDir, latestFile), 'utf8')
         );
 
         // Generate HTML report
         const html = generateHtmlReport(resultData);
-        const reportPath = path.join(resultsDir, 'reports/report.html');
+        const reportPath = join(resultsDir, 'reports/report.html');
         await fs.writeFile(reportPath, html);
 
         console.log(`Report generated at: ${reportPath}`);
@@ -181,8 +185,8 @@ function prepareChartData(data, metric, label) {
 }
 
 // Run the report generator if called directly
-if (require.main === module) {
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
     generateReport();
 }
 
-module.exports = generateReport;
+export default generateReport;

@@ -1,13 +1,19 @@
-const puppeteer = require('puppeteer');
-const fs = require('fs').promises;
-const path = require('path');
-const { program } = require('commander');
-const { execSync, spawn } = require('child_process');
-const express = require('express');
-const compression = require('compression');
-const morgan = require('morgan');
-const { createServer: createViteServer } = require('vite');
-const { performance, PerformanceObserver } = require('perf_hooks');
+import puppeteer from 'puppeteer';
+import { promises as fs } from 'fs';
+import { dirname, join } from 'path';
+import { Command } from 'commander';
+import { execSync, spawn } from 'child_process';
+import express from 'express';
+import compression from 'compression';
+import morgan from 'morgan';
+import { createServer as createViteServer } from 'vite';
+import { performance, PerformanceObserver } from 'perf_hooks';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const program = new Command();
 
 // Framework configuration
 const FRAMEWORK_CONFIGS = {
@@ -69,7 +75,7 @@ async function startViteServer(port, framework) {
   app.use(morgan('tiny'));
 
   const vite = await createViteServer({
-    root: path.join(__dirname, '..', 'test-implementations', `${framework}-app`),
+    root: join(__dirname, '..', 'test-implementations', `${framework}-app`),
     server: { middlewareMode: true, port },
     appType: 'spa'
   });
@@ -86,7 +92,7 @@ async function startViteServer(port, framework) {
 
 async function startStandaloneServer(framework, port) {
   const config = FRAMEWORK_CONFIGS[framework];
-  const appPath = path.join(__dirname, '..', 'test-implementations', `${framework}-app`);
+  const appPath = join(__dirname, '..', 'test-implementations', `${framework}-app`);
   const originalDir = process.cwd();
 
   try {
@@ -101,7 +107,6 @@ async function startStandaloneServer(framework, port) {
         env: { ...process.env, PORT: port.toString() }
       });
 
-      // Give the server time to start
       setTimeout(() => {
         console.log(`${framework} app listening on port ${port}`);
         resolve({ server, type: config.type });
@@ -115,7 +120,7 @@ async function startStandaloneServer(framework, port) {
 // Build function for different frameworks
 async function buildFramework(framework) {
   const config = FRAMEWORK_CONFIGS[framework];
-  const frameworkPath = path.join(__dirname, '..', 'test-implementations', `${framework}-app`);
+  const frameworkPath = join(__dirname, '..', 'test-implementations', `${framework}-app`);
   const originalDir = process.cwd();
   
   try {
@@ -337,7 +342,7 @@ async function runBenchmark(options) {
     await page.setCacheEnabled(false);
     await page.coverage.startJSCoverage();
     
-    const resultsDir = path.join(__dirname, '..', 'results');
+    const resultsDir = join(__dirname, '..', 'results');
     await fs.mkdir(resultsDir, { recursive: true });
     
     const scenarios = options.scenario ? [options.scenario] : ['form', 'realtime', 'animation', 'websocket', 'dom'];
@@ -422,7 +427,7 @@ async function runBenchmark(options) {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const resultsFile = path.join(resultsDir, `benchmark-${timestamp}.json`);
+    const resultsFile = join(resultsDir, `benchmark-${timestamp}.json`);
     await fs.writeFile(resultsFile, JSON.stringify(results, null, 2));
     const summary = generateSummary(results);
   
@@ -535,7 +540,7 @@ function getFrameworkConfig(framework) {
   
 async function verifyFrameworkSetup(framework) {
 const config = getFrameworkConfig(framework);
-const frameworkPath = path.join(__dirname, '..', 'test-implementations', `${framework}-app`);
+const frameworkPath = join(__dirname, '..', 'test-implementations', `${framework}-app`);
 
 try {
     const stats = await fs.stat(frameworkPath);
@@ -545,7 +550,7 @@ try {
     
     // Check for package.json except for Blazor
     if (config.type !== 'dotnet') {
-    const packageJsonPath = path.join(frameworkPath, 'package.json');
+    const packageJsonPath = join(frameworkPath, 'package.json');
     await fs.access(packageJsonPath);
     }
     
@@ -556,51 +561,59 @@ try {
 }
 }
 
-module.exports = {
-    // Core functionality
-    runBenchmark,
-    startServer,
-    buildFramework,
-    
-    // Server management
-    startViteServer,
-    startStandaloneServer,
-    
-    // Metrics collection
-    collectWebVitals,
-    analyzeMemoryLeaks,
-    injectBenchmarkHelper,
-    
-    // Configuration and helpers
-    FRAMEWORK_CONFIGS,
-    getFrameworkConfig,
-    verifyFrameworkSetup,
-    getScenarioUrl,
-    
-    // Analysis helpers
-    calculateAverage,
-    calculatePercentile,
-    formatBytes,
-    generateSummary
-  };
+// Export all functions and constants
+export {
+  // Core functionality
+  runBenchmark,
+  startServer,
+  buildFramework,
   
-  // Run benchmark if script is executed directly
-  if (require.main === module) {
-    const options = program.opts();
-    
-    // Verify framework setup before running
-    if (options.framework) {
-      verifyFrameworkSetup(options.framework)
-        .then(isValid => {
-          if (isValid) {
-            return runBenchmark(options);
-          } else {
-            console.error(`Cannot run benchmark: ${options.framework} is not properly set up`);
-            process.exit(1);
-          }
-        })
-        .catch(console.error);
-    } else {
-      runBenchmark(options).catch(console.error);
-    }
+  // Server management
+  startViteServer,
+  startStandaloneServer,
+  
+  // Metrics collection
+  collectWebVitals,
+  analyzeMemoryLeaks,
+  injectBenchmarkHelper,
+  
+  // Configuration and helpers
+  FRAMEWORK_CONFIGS,
+  getFrameworkConfig,
+  verifyFrameworkSetup,
+  getScenarioUrl,
+  
+  // Analysis helpers
+  calculateAverage,
+  calculatePercentile,
+  formatBytes,
+  generateSummary
+};
+
+// CLI setup
+program
+  .option('-f, --framework <framework>', 'Specific framework to test')
+  .option('-s, --scenario <scenario>', 'Specific scenario to test')
+  .option('-i, --iterations <number>', 'Number of iterations', parseInt)
+  .option('-w, --warmup <number>', 'Number of warmup runs', parseInt)
+  .parse(process.argv);
+
+// Run benchmark if script is executed directly
+if (import.meta.url === import.meta.resolve(process.argv[1])) {
+  const options = program.opts();
+  
+  if (options.framework) {
+    verifyFrameworkSetup(options.framework)
+      .then(isValid => {
+        if (isValid) {
+          return runBenchmark(options);
+        } else {
+          console.error(`Cannot run benchmark: ${options.framework} is not properly set up`);
+          process.exit(1);
+        }
+      })
+      .catch(console.error);
+  } else {
+    runBenchmark(options).catch(console.error);
   }
+}
